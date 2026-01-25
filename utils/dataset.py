@@ -1,7 +1,8 @@
 import os 
 import pandas as pd
+from datasets import load_dataset
 
-def load_dataset(folder_path: str = "./datasets", header=None, names:list=["prompt"]):
+def load_local_dataset(folder_path: str = "./datasets", header=None, names:list=["prompt"]):
     """
     folder_path: Loads all csv files in folder_path as a single dataset
     """
