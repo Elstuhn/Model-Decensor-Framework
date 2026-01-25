@@ -191,7 +191,7 @@ def save_model(
     hf_model = AutoModelForCausalLM.from_pretrained(
         original_model,
         torch_dtype=dtype,
-        device='cpu',
+        device_map="cpu",
     )
     
     lm_model = hf_model.model  
