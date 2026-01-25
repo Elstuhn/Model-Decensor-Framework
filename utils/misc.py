@@ -5,12 +5,38 @@ import functools
 import einops
 from jaxtyping import Float, Int
 from torch import Tensor
+from transformer_lens.hook_points import HookPoint
 
-from utils import *
+#from utils import *
+from .model import get_generations
 
 def get_act_idx(cache_dict, act_name, layer):
     key = (act_name, layer)
     return cache_dict[utils.get_act_name(*key)]
+
+def direction_ablation_hook(
+    activation: Float[Tensor, "... d_act"],
+    hook: HookPoint,
+    direction: Float[Tensor, "d_act"],
+):
+    """
+    activation = residual stream
+    direction = refusal direction to ablate
+
+    Uses orthogonal decomposition to remove the component of the activation
+      aligned with the 'direction' vector.
+    """
+    if activation.device != direction.device:
+        direction = direction.to(activation.device)
+
+    proj = (
+        einops.einsum(
+            activation, direction.view(-1, 1), "... d_act, d_act single -> ... single"
+        )
+        * direction
+    ) # proj=(⟨a,d⟩)d # refusal component of activation (subspace set to refusal direction)
+    return activation - proj # vector orthogonal to refusal subspace (no refusal component)
+
 
 def compute_refusal(
         model,
@@ -40,11 +66,12 @@ def compute_refusal(
             refusal_dir = refusal_dir / refusal_dir.norm()
             activation_refusals[layer].append(refusal_dir)
 
+    selected_layers = [activation_layer[i] for i in selected_layers]
     activation_scored = sorted(
         [
-            activation_refusals[activation_layer[layer_idx]][l-1] 
+            activation_refusals[layer][l-1] 
             for l in range(1, model.cfg.n_layers)
-            for layer_idx in activation_layer
+            for layer in selected_layers
         ],
         key = lambda x: abs(x.mean()),
         reverse=True
@@ -72,9 +99,9 @@ def evaluate_refusal_direction(
         List of model outputs after ablation.
     """
     N_INST_TEST = 4 
-    baseline_generations = get_generations(
-        model, tokenizer, instructions[:N_INST_TEST], fwd_hooks=[]
-    )
+    #baseline_generations = get_generations(
+    #    model, tokenizer, instructions[:N_INST_TEST], fwd_hooks=[]
+    #)
 
     EVAL_N = 15
     evals = []
@@ -105,19 +132,3 @@ def evaluate_refusal_direction(
     succeeded = set(range(EVAL_N)) - set(fail)
 
     return succeeded
-
-def get_orthogonalized_matrix(
-    matrix: Float[Tensor, "... d_model"], vec: Float[Tensor, "d_model"]
-) -> Float[Tensor, "... d_model"]:
-    """   
-    Function to get orthoganalized vector of 'matrix' with respect to 'vec'
-    """
-    proj = (
-        einops.einsum(
-            matrix, vec.view(-1, 1), "... d_model, d_model single -> ... single"
-        )
-        * vec
-    )
-
-    return matrix - proj
-

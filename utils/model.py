@@ -6,13 +6,10 @@ from typing import List
 from jaxtyping import Float, Int  
 from torch import Tensor
 from tqdm import tqdm
-from transformer_lens.hook_points import HookPoint
 import einops
 
 from collections import defaultdict
 import gc
-
-from utils import *
 
 def get_model(model_path:str):
     """   
@@ -95,31 +92,6 @@ def get_generations(
         )
         generations.extend(generation)
     return generations
-
-
-def direction_ablation_hook(
-    activation: Float[Tensor, "... d_act"],
-    hook: HookPoint,
-    direction: Float[Tensor, "d_act"],
-):
-    """
-    activation = residual stream
-    direction = refusal direction to ablate
-
-    Uses orthogonal decomposition to remove the component of the activation
-      aligned with the 'direction' vector.
-    """
-    if activation.device != direction.device:
-        direction = direction.to(activation.device)
-
-    proj = (
-        einops.einsum(
-            activation, direction.view(-1, 1), "... d_act, d_act single -> ... single"
-        )
-        * direction
-    ) # proj=(⟨a,d⟩)d # refusal component of activation (subspace set to refusal direction)
-    return activation - proj # vector orthogonal to refusal subspace (no refusal component)
-
 
 def get_activations(model, tokenizer, harmful_data, harmless_data, batch_size:int = 32):
     """    
@@ -243,3 +215,18 @@ def save_model(
 
     del lm_model, hf_model
 
+
+def get_orthogonalized_matrix(
+        matrix: Float[Tensor, "... d_model"], vec: Float[Tensor, "d_model"]
+    ) -> Float[Tensor, "... d_model"]:
+    """   
+    Function to get orthoganalized vector of 'matrix' with respect to 'vec'
+    """
+    proj = (
+        einops.einsum(
+            matrix, vec.view(-1, 1), "... d_model, d_model single -> ... single"
+        )
+        * vec
+    )
+
+    return matrix - proj
