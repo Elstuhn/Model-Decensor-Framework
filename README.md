@@ -14,7 +14,7 @@ python main.py
 
 Decensoring any other models
 ```
-python main.py -m (model name on huggingface)Z -s abliterated_model.pt -d ./datasets
+python main.py -m (model name on huggingface) -s abliterated_model.pt -d ./datasets
 ```
 
 # Dataset
@@ -24,5 +24,6 @@ Dataset used currently consists of 4 different categories. Fraud, hate_harass_vi
 Optimize gpu memory usage
 
 <img width="1009" height="142" alt="image" src="https://github.com/user-attachments/assets/5356b76e-d02c-49b7-8e1a-e66c92ec2907" />
+
 
 
