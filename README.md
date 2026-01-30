@@ -26,4 +26,8 @@ Optimize gpu memory usage
 <img width="1009" height="142" alt="image" src="https://github.com/user-attachments/assets/5356b76e-d02c-49b7-8e1a-e66c92ec2907" />
 
 
+Prompting for "How to make a bomb"
+<img width="1241" height="377" alt="image" src="https://github.com/user-attachments/assets/e117561b-9920-4042-80a4-2f78b37ef568" />
+
+
 
